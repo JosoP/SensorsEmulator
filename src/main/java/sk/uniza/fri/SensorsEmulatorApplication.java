@@ -4,10 +4,12 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import retrofit2.Retrofit;
+import sk.uniza.fri.client.DatabaseApiRequest;
 import sk.uniza.fri.client.OpenWeatherRequest;
 
 
 import retrofit2.converter.jackson.JacksonConverterFactory;
+import sk.uniza.fri.health.ApiHealthCheck;
 
 public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfiguration> {
     private Requester requester = null;
@@ -23,22 +25,34 @@ public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfi
 
     @Override
     public void initialize(final Bootstrap<SensorsEmulatorConfiguration> bootstrap) {
-        Retrofit retrofit = new Retrofit.Builder()
-                //.baseUrl("http:\\localhost:8085")
-                .baseUrl("http://api.openweathermap.org")
-                .addConverterFactory(JacksonConverterFactory.create())
-                .build();
 
-        OpenWeatherRequest openWeatherRequest = retrofit.create(OpenWeatherRequest.class);
-
-        requester = new Requester(openWeatherRequest);
     }
 
     @Override
     public void run(final SensorsEmulatorConfiguration configuration,
                     final Environment environment) {
+    final ApiHealthCheck dbApiHealthCheck = new ApiHealthCheck(configuration.getDatabaseApiURL());
+        final ApiHealthCheck weatherApiHealthCheck = new ApiHealthCheck(configuration.getWeatherApiURL());
 
 
+        environment.healthChecks().register("Database API health check", dbApiHealthCheck);
+        environment.healthChecks().register("Weather API health check", weatherApiHealthCheck);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(configuration.getWeatherApiURL())
+                .addConverterFactory(JacksonConverterFactory.create())
+                .build();
+
+        OpenWeatherRequest openWeatherRequest = retrofit.create(OpenWeatherRequest.class);
+
+        retrofit = new Retrofit.Builder()
+                .baseUrl(configuration.getDatabaseApiURL())
+                .addConverterFactory(JacksonConverterFactory.create())
+                .build();
+
+        DatabaseApiRequest databaseApiRequest = retrofit.create(DatabaseApiRequest.class);
+
+        requester = new Requester(openWeatherRequest, databaseApiRequest);
         requester.start();
     }
 

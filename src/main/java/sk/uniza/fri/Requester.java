@@ -4,9 +4,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import sk.uniza.fri.api.CityWeather;
-import sk.uniza.fri.api.Saying;
-import sk.uniza.fri.api.Weather;
 import sk.uniza.fri.api.WeatherList;
+import sk.uniza.fri.client.DatabaseApiRequest;
 import sk.uniza.fri.client.OpenWeatherRequest;
 
 import java.util.ArrayList;
@@ -20,10 +19,12 @@ public class Requester extends Thread {
     private final static String API_KEY = "660955c02abd1ab4f655aced38437e7b";
 
     private final OpenWeatherRequest openWeatherRequest;
+    private final DatabaseApiRequest databaseApiRequest;
     private final ArrayList cityIdList;
 
-    public Requester(OpenWeatherRequest openWeatherRequest) {
+    public Requester(OpenWeatherRequest openWeatherRequest, DatabaseApiRequest databaseApiRequest) {
         this.openWeatherRequest = openWeatherRequest;
+        this.databaseApiRequest = databaseApiRequest;
         this.cityIdList = new ArrayList<String>();
 
         this.cityIdList.add("3496831");
@@ -86,7 +87,7 @@ public class Requester extends Thread {
 
             @Override
             public void onFailure(Call<WeatherList> call, Throwable throwable) {
-
+                LOGGER.log(Level.INFO,"Request for cities'es weather failed.");
             }
         });
     }

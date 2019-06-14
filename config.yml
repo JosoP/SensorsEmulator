@@ -2,3 +2,7 @@ logging:
   level: INFO
   loggers:
     sk.uniza.fri: DEBUG
+
+weatherApiURL: http://api.openweathermap.org
+
+databaseApiURL: http://localhost
