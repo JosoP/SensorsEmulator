@@ -3,6 +3,13 @@ logging:
   loggers:
     sk.uniza.fri: DEBUG
 
+#Server configuration.
+server:
+  rootPath: /
+  applicationConnectors:
+    - type: http
+      port: 8090
+
 weatherApiURL: http://api.openweathermap.org
 
-databaseApiURL: http://localhost
+databaseApiURL: http://localhost:8085

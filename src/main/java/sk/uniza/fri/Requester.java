@@ -3,11 +3,12 @@ package sk.uniza.fri;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import sk.uniza.fri.api.CityWeather;
-import sk.uniza.fri.api.WeatherList;
+import sk.uniza.fri.api.*;
 import sk.uniza.fri.client.DatabaseApiRequest;
 import sk.uniza.fri.client.OpenWeatherRequest;
 
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -74,12 +75,31 @@ public class Requester extends Thread {
                 WeatherList weatherList = response.body();
                 if(weatherList != null){
                     List<CityWeather> cities = weatherList.getCityList();
-
                     LOGGER.log(Level.INFO, "Weather from some cities comes");
+                    ArrayList<WeatherRecord> recordList = new ArrayList<>();
 
                     for (CityWeather city : cities){
+                        recordList.add(new WeatherRecord(city.getId(),
+                                                        city.getMain().getTemp(),
+                                                        city.getMain().getPressure(),
+                                                        city.getMain().getHumidity(),
+                                                        new Timestamp(System.currentTimeMillis())));
                         LOGGER.log(Level.INFO,"Temperature in " + city.getName() + " is " + city.getMain().getTemp() + "°c");
                     }
+
+                    try {
+                        Response<Void> databaseResponse = Requester.this.databaseApiRequest.storeWeatherRecordList(
+                                new WeatherRecordList(recordList.size(), recordList)).execute();
+
+                        if(response.isSuccessful()){
+                            LOGGER.log(Level.WARNING, "Data storing successful.");
+                        } else {
+                            LOGGER.log(Level.WARNING, "Data storing failed.");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                 } else {
                     LOGGER.log(Level.WARNING, "Not possible to parse response from API, because it is null");
                 }
