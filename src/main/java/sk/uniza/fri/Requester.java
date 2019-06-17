@@ -91,7 +91,7 @@ public class Requester extends Thread {
                         Response<Void> databaseResponse = Requester.this.databaseApiRequest.storeWeatherRecordList(
                                 new WeatherRecordList(recordList.size(), recordList)).execute();
 
-                        if(response.isSuccessful()){
+                        if(databaseResponse.isSuccessful()){
                             LOGGER.log(Level.WARNING, "Data storing successful.");
                         } else {
                             LOGGER.log(Level.WARNING, "Data storing failed.");
