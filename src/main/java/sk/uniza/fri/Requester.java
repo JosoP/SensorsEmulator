@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,12 +39,34 @@ public class Requester extends Thread {
     @Override
     public void run() {
         super.run();
+
         try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            LOGGER.log(Level.INFO, "Requester thread running");
+
+            Response<Set<Long>> response = databaseApiRequest.getFollowedCitiesIds().execute();
+            if (response.isSuccessful()){
+                Set<Long> IDs = response.body();
+                this.cityIdList.clear();
+                if(IDs != null) {
+                    for (Long id : IDs) {
+                        this.cityIdList.add(id.toString());
+                    }
+                }
+            } else {
+                LOGGER.log(Level.INFO, "Cannot load ids from server");
+            }
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        LOGGER.log(Level.INFO, "Requester thread running");
+
+
         while(true){
 
 
