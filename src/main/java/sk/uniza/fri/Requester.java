@@ -21,7 +21,7 @@ public class Requester extends Thread {
 
     private final OpenWeatherRequest openWeatherRequest;
     private final DatabaseApiRequest databaseApiRequest;
-    private final ArrayList cityIdList;
+    private ArrayList cityIdList;
 
     public Requester(OpenWeatherRequest openWeatherRequest, DatabaseApiRequest databaseApiRequest) {
         this.openWeatherRequest = openWeatherRequest;
@@ -131,5 +131,10 @@ public class Requester extends Thread {
                 LOGGER.log(Level.INFO,"Request for one city weather failed.");
             }
         });
+    }
+
+    public void setCityIdList(ArrayList cityIdList) {
+        LOGGER.log(Level.INFO,"Followed cities changed. IDs: " + cityIdList.toString());
+        this.cityIdList = cityIdList;
     }
 }

@@ -10,6 +10,7 @@ import sk.uniza.fri.client.OpenWeatherRequest;
 
 import retrofit2.converter.jackson.JacksonConverterFactory;
 import sk.uniza.fri.health.ApiHealthCheck;
+import sk.uniza.fri.resources.SettingsResource;
 
 public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfiguration> {
     private Requester requester = null;
@@ -31,7 +32,7 @@ public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfi
     @Override
     public void run(final SensorsEmulatorConfiguration configuration,
                     final Environment environment) {
-    final ApiHealthCheck dbApiHealthCheck = new ApiHealthCheck(configuration.getDatabaseApiURL());
+        final ApiHealthCheck dbApiHealthCheck = new ApiHealthCheck(configuration.getDatabaseApiURL());
         final ApiHealthCheck weatherApiHealthCheck = new ApiHealthCheck(configuration.getWeatherApiURL());
 
 
@@ -54,6 +55,11 @@ public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfi
 
         requester = new Requester(openWeatherRequest, databaseApiRequest);
         requester.start();
+
+        final SettingsResource settingsResource = new SettingsResource(requester);
+
+
+        environment.jersey().register(settingsResource);
     }
 
 }
