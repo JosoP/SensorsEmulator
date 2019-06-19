@@ -18,21 +18,17 @@ import java.util.logging.Logger;
 public class Requester extends Thread {
     // assumes the current class is called MyLogger
     private final static Logger LOGGER = Logger.getLogger(Requester.class.getName());
-    private final static String API_KEY = "660955c02abd1ab4f655aced38437e7b";
+    private final static String OPEN_WEATHER_API_KEY = "660955c02abd1ab4f655aced38437e7b";
 
     private final OpenWeatherRequest openWeatherRequest;
     private final DatabaseApiRequest databaseApiRequest;
-    private ArrayList cityIdList;
+    private ArrayList<CityApiKey> cityKeyList;
 
     public Requester(OpenWeatherRequest openWeatherRequest, DatabaseApiRequest databaseApiRequest) {
         this.openWeatherRequest = openWeatherRequest;
         this.databaseApiRequest = databaseApiRequest;
-        this.cityIdList = new ArrayList<String>();
+        this.cityKeyList = new ArrayList<>();
 
-        this.cityIdList.add("3496831");
-        this.cityIdList.add("874560");
-        this.cityIdList.add("476350");
-        this.cityIdList.add("798544");
     }
 
 
@@ -40,48 +36,70 @@ public class Requester extends Thread {
     public void run() {
         super.run();
 
+
         try {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            LOGGER.log(Level.INFO, "Requester thread running");
-
-            Response<Set<Long>> response = databaseApiRequest.getFollowedCitiesIds().execute();
-            if (response.isSuccessful()){
-                Set<Long> IDs = response.body();
-                this.cityIdList.clear();
-                if(IDs != null) {
-                    for (Long id : IDs) {
-                        this.cityIdList.add(id.toString());
-                    }
-                }
-            } else {
-                LOGGER.log(Level.INFO, "Cannot load ids from server");
-            }
-
-        } catch (IOException e) {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+        LOGGER.log(Level.INFO, "Requester thread running");
 
-        while(true){
+        while (true) {
 
 
-            requestMoreCitiesWeather(cityIdList);
-            //requestOneCityWeather("475279");
+            boolean wasCitiesLoaded = false;
+            while (!wasCitiesLoaded) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                LOGGER.log(Level.INFO,"Requester thread interrupted");
+                try {
+                    Response<List<CityApiKey>> response = databaseApiRequest.getFollowedCitiesIds().execute();
+                    if (response.isSuccessful()) {
+                        List<CityApiKey> cityApiKeys = response.body();
+                        this.cityKeyList.clear();
+                        if (cityApiKeys != null) {
+                            this.cityKeyList.addAll(cityApiKeys);
+                            LOGGER.log(Level.INFO, "Cities are loaded from server");
+                            wasCitiesLoaded = true;
+                        } else {
+                            LOGGER.log(Level.INFO, "No cities were loaded");
+                        }
+                    } else {
+                        LOGGER.log(Level.INFO, "Cannot load cities from server");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+
+
+            boolean isDatabaseConnected = requestMoreCitiesWeather();
+
+            while (isDatabaseConnected) {
+
+                try {
+                    Thread.sleep(60000);
+                } catch (InterruptedException e) {
+                    LOGGER.log(Level.INFO, "Requester thread interrupted");
+                }
+
+                isDatabaseConnected = requestMoreCitiesWeather();
+            }
+
+            LOGGER.log(Level.INFO, "Connection with server failed. Waiting for reconnect.");
         }
     }
 
-    private void requestMoreCitiesWeather(ArrayList cityIdList) {
+    private boolean requestMoreCitiesWeather() {
+        boolean wasSomethingSuccessful = false;
+        ArrayList<String> cityIdList = new ArrayList<>();
+        for (CityApiKey city : this.cityKeyList) {
+            cityIdList.add(city.getCityID().toString());
+        }
 
         // convert list of ids to one string in which ids are separated by comma
         String cityIds = cityIdList.toString()
@@ -90,49 +108,56 @@ public class Requester extends Thread {
                 .replace("]", "");
         LOGGER.log(Level.INFO, "City IDs are " + cityIds);
 
-        Call<WeatherList> request = this.openWeatherRequest.getCityGroup(cityIds);
+        try {
+            Response<WeatherList> weatherApiResponse = this.openWeatherRequest.getCityGroup(cityIds).execute();
 
-        request.enqueue(new Callback<WeatherList>() {
-            @Override
-            public void onResponse(Call<WeatherList> call, Response<WeatherList> response) {
-                WeatherList weatherList = response.body();
-                if(weatherList != null){
+
+            if (weatherApiResponse.isSuccessful()) {
+                WeatherList weatherList = weatherApiResponse.body();
+                if (weatherList != null) {
                     List<CityWeather> cities = weatherList.getCityList();
                     LOGGER.log(Level.INFO, "Weather from some cities comes");
-                    ArrayList<WeatherRecord> recordList = new ArrayList<>();
 
-                    for (CityWeather city : cities){
-                        recordList.add(new WeatherRecord(city.getId(),
-                                                        city.getMain().getTemp(),
-                                                        city.getMain().getPressure(),
-                                                        city.getMain().getHumidity(),
-                                                        new Timestamp(System.currentTimeMillis())));
-                        LOGGER.log(Level.INFO,"Temperature in " + city.getName() + " is " + city.getMain().getTemp() + "°c");
-                    }
+                    for (CityWeather city : cities) {
+                        WeatherRecord record = new WeatherRecord(city.getId(),
+                                city.getMain().getTemp(),
+                                city.getMain().getPressure(),
+                                city.getMain().getHumidity(),
+                                new Timestamp(System.currentTimeMillis()));
 
-                    try {
-                        Response<Void> databaseResponse = Requester.this.databaseApiRequest.storeWeatherRecordList(
-                                new WeatherRecordList(recordList.size(), recordList)).execute();
-
-                        if(databaseResponse.isSuccessful()){
-                            LOGGER.log(Level.WARNING, "Data storing successful.");
-                        } else {
-                            LOGGER.log(Level.WARNING, "Data storing failed.");
+                        String apiKey = null;
+                        for (CityApiKey cityKey : Requester.this.cityKeyList) {
+                            if (city.getId().equals(cityKey.getCityID())) {
+                                apiKey = cityKey.getApiKey();
+                            }
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+
+
+                        LOGGER.log(Level.INFO, "Temperature in " + city.getName() + " is " + city.getMain().getTemp() + "°c");
+
+                        Response<Void> databaseResponse =
+                                Requester.this.databaseApiRequest.storeWeatherRecord(record, apiKey).execute();
+
+                        if (databaseResponse.isSuccessful()) {
+                            LOGGER.log(Level.WARNING, "Data storing of " + city.getName() + " successful.");
+                            wasSomethingSuccessful = true;
+                        } else {
+                            LOGGER.log(Level.WARNING, "Data storing of " + city.getName() + " failed.");
+                        }
+
                     }
 
                 } else {
                     LOGGER.log(Level.WARNING, "Not possible to parse response from API, because it is null");
                 }
+            } else {
+                LOGGER.log(Level.INFO, "Request for cities'es weather failed.");
             }
 
-            @Override
-            public void onFailure(Call<WeatherList> call, Throwable throwable) {
-                LOGGER.log(Level.INFO,"Request for cities'es weather failed.");
-            }
-        });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return wasSomethingSuccessful;
     }
 
     private void requestOneCityWeather(String cityID) {
@@ -142,22 +167,22 @@ public class Requester extends Thread {
             @Override
             public void onResponse(Call<CityWeather> call, Response<CityWeather> response) {
                 CityWeather cityWeather = response.body();
-                if(cityWeather != null){
+                if (cityWeather != null) {
                     double temperature = cityWeather.getMain().getTemp();
 
-                    LOGGER.log(Level.INFO,"Temperature in " + cityWeather.getName() + " is " + temperature + "°c");
+                    LOGGER.log(Level.INFO, "Temperature in " + cityWeather.getName() + " is " + temperature + "°c");
                 }
             }
 
             @Override
             public void onFailure(Call<CityWeather> call, Throwable throwable) {
-                LOGGER.log(Level.INFO,"Request for one city weather failed.");
+                LOGGER.log(Level.INFO, "Request for one city weather failed.");
             }
         });
     }
 
-    public void setCityIdList(ArrayList cityIdList) {
-        LOGGER.log(Level.INFO,"Followed cities changed. IDs: " + cityIdList.toString());
-        this.cityIdList = cityIdList;
+    public void setCityKeyList(ArrayList cityKeyList) {
+        LOGGER.log(Level.INFO, "Followed cities changed. IDs: " + cityKeyList.toString());
+        this.cityKeyList = cityKeyList;
     }
 }

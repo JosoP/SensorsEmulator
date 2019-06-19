@@ -1,6 +1,7 @@
 package sk.uniza.fri.resources;
 
 import sk.uniza.fri.Requester;
+import sk.uniza.fri.api.CityApiKey;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -19,9 +20,9 @@ public class SettingsResource {
     @POST
     @Path("/cities")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response setCities(@QueryParam("cityIDs") final List<String> IDs){
-        if(IDs != null){
-            requester.setCityIdList(new ArrayList<>(IDs));
+    public Response setCities(List<CityApiKey> cities){
+        if(cities != null){
+            requester.setCityKeyList(new ArrayList<>(cities));
         } else {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
