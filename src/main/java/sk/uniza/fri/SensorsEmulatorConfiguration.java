@@ -2,6 +2,7 @@ package sk.uniza.fri;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
+import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 import org.hibernate.validator.constraints.NotEmpty;
 
 public class SensorsEmulatorConfiguration extends Configuration {
@@ -10,6 +11,9 @@ public class SensorsEmulatorConfiguration extends Configuration {
     private String weatherApiURL;
     @NotEmpty
     private String databaseApiURL;
+
+    @JsonProperty("swagger")
+    public SwaggerBundleConfiguration swaggerBundleConfiguration;
 
     @JsonProperty("weatherApiURL")
     public String getWeatherApiURL() {
@@ -27,5 +31,14 @@ public class SensorsEmulatorConfiguration extends Configuration {
     @JsonProperty("databaseApiURL")
     public void setDatabaseApiURL(String databaseApiURL) {
         this.databaseApiURL = databaseApiURL;
+    }
+
+    @JsonProperty("swagger")
+    public SwaggerBundleConfiguration getSwaggerBundleConfiguration() {
+        return swaggerBundleConfiguration;
+    }
+    @JsonProperty("swagger")
+    public void setSwaggerBundleConfiguration(SwaggerBundleConfiguration swaggerBundleConfiguration) {
+        this.swaggerBundleConfiguration = swaggerBundleConfiguration;
     }
 }

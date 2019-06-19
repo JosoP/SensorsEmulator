@@ -13,3 +13,16 @@ server:
 weatherApiURL: http://api.openweathermap.org
 
 databaseApiURL: http://localhost:8085
+
+#Swagger documentation builder
+#https://github.com/smoketurner/dropwizard-swagger
+swagger:
+  resourcePackage: sk.uniza.fri.resources
+  title: IoT Weather Sensor Emulator Microservices
+  schemes: ["http","https"]
+  uriPrefix: ""
+  oauth2:
+    clientId: client1
+    clientSecrete: 123456
+    appName: IoT Weather
+    realm: JWT

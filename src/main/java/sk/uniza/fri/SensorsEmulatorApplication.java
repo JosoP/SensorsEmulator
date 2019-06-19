@@ -3,6 +3,8 @@ package sk.uniza.fri;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.federecio.dropwizard.swagger.SwaggerBundle;
+import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 import retrofit2.Retrofit;
 import sk.uniza.fri.client.DatabaseApiRequest;
 import sk.uniza.fri.client.OpenWeatherRequest;
@@ -27,6 +29,13 @@ public class SensorsEmulatorApplication extends Application<SensorsEmulatorConfi
     @Override
     public void initialize(final Bootstrap<SensorsEmulatorConfiguration> bootstrap) {
 
+        // Swagger documentation available on http://localhost:<your_port>/swagger
+        bootstrap.addBundle(new SwaggerBundle<SensorsEmulatorConfiguration>() {
+            @Override
+            protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(SensorsEmulatorConfiguration configuration) {
+                return configuration.swaggerBundleConfiguration;
+            }
+        });
     }
 
     @Override

@@ -82,7 +82,7 @@ public class Requester extends Thread {
             while (isDatabaseConnected) {
 
                 try {
-                    Thread.sleep(60000);
+                    Thread.sleep(20 * 60000);
                 } catch (InterruptedException e) {
                     LOGGER.log(Level.INFO, "Requester thread interrupted");
                 }
